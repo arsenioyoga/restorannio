@@ -2,60 +2,47 @@
 session_start();
 include 'koneksi.php';
 
-// Hanya kasir yang bisa mengakses
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'kasir') {
     echo "<script>alert('Akses ditolak!'); window.location.href='login.php';</script>";
     exit;
 }
 
-$nama = $_SESSION['nama'];
-$role = $_SESSION['role'];
+$pesan = '';
+$kembalian = null;
 
-// Ambil daftar ID pesanan
-$pesanan = mysqli_query($conn, "SELECT idpesanan FROM pesanan");
+// Hapus transaksi
+if (isset($_GET['hapus'])) {
+    $id = $_GET['hapus'];
+    mysqli_query($conn, "DELETE FROM transaksi WHERE idtransaksi = $id");
+    header("Location: entri_transaksi.php");
+    exit;
+}
 
-// Variabel transaksi yang baru dimasukkan
-$transaksiBaru = null;
-
-// Jika form disubmit
+// Simpan transaksi
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $idpesanan = $_POST['idpesanan'];
     $total = $_POST['total'];
     $bayar = $_POST['bayar'];
 
-    // Simpan ke tabel transaksi
-    mysqli_query($conn, "INSERT INTO transaksi (idpesanan, total, bayar) VALUES ('$idpesanan', '$total', '$bayar')");
-
-    // Ambil transaksi yang baru dimasukkan
-    $transaksiBaru = [
-        'idtransaksi' => mysqli_insert_id($conn), // ID transaksi yang baru dimasukkan
-        'idpesanan' => $idpesanan,
-        'total' => $total,
-        'bayar' => $bayar
-    ];
-
-    // Simpan ke tabel laporan
-    $tanggal = date('Y-m-d');
-    $keterangan = "Transaksi Pesanan #$idpesanan - Total: Rp" . number_format($total) . ", Bayar: Rp" . number_format($bayar);
-    mysqli_query($conn, "INSERT INTO laporan (keterangan, tanggal) VALUES ('$keterangan', '$tanggal')");
+    if ($bayar < $total) {
+        $pesan = "Uang bayar kurang!";
+    } else {
+        mysqli_query($conn, "INSERT INTO transaksi (idpesanan, total, bayar) VALUES ('$idpesanan', '$total', '$bayar')");
+        $kembalian = $bayar - $total;
+    }
 }
 
-// Jika ada transaksi yang dihapus
-if (isset($_GET['hapus'])) {
-    $idtransaksi = $_GET['hapus'];
-    mysqli_query($conn, "DELETE FROM transaksi WHERE idtransaksi = $idtransaksi");
-    header("Location: entri_transaksi.php"); // Refresh halaman setelah penghapusan
-    exit;
-}
+// Data pesanan
+$pesanan = mysqli_query($conn, "SELECT p.idpesanan, m.namamenu, p.jumlah, m.harga, (p.jumlah * m.harga) AS total 
+                                FROM pesanan p 
+                                JOIN menu m ON p.idmenu = m.idmenu");
 
-// Ambil semua riwayat transaksi (tanpa transaksi yang baru dimasukkan)
-$transaksi = mysqli_query($conn, "
-    SELECT t.*, p.idpesanan 
-    FROM transaksi t 
-    JOIN pesanan p ON t.idpesanan = p.idpesanan
-    WHERE t.idtransaksi != '" . ($transaksiBaru ? $transaksiBaru['idtransaksi'] : '') . "'
-    ORDER BY t.idtransaksi DESC
-");
+// Riwayat transaksi
+$riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu 
+                                FROM transaksi t 
+                                JOIN pesanan p ON t.idpesanan = p.idpesanan 
+                                JOIN menu m ON p.idmenu = m.idmenu 
+                                ORDER BY t.idtransaksi DESC");
 ?>
 
 <!DOCTYPE html>
@@ -68,30 +55,30 @@ $transaksi = mysqli_query($conn, "
             margin: 0;
             font-family: 'Segoe UI', sans-serif;
             display: flex;
-            background-color: #f4f4f4;
+            background-color: #ffffff;
             color: #333;
         }
 
         .sidebar {
-            width: 220px;
-            background-color: #343a40;
-            padding: 20px;
+            width: 240px;
+            background-color: #1e1e2f;
+            padding: 30px 20px;
             min-height: 100vh;
             color: white;
         }
 
         .sidebar h2 {
-            font-size: 18px;
-            margin-bottom: 20px;
+            font-size: 20px;
+            margin-bottom: 30px;
         }
 
         .sidebar a {
-            display: block;
             color: #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 6px;
             text-decoration: none;
+            display: block;
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 8px;
         }
 
         .sidebar a:hover {
@@ -105,15 +92,11 @@ $transaksi = mysqli_query($conn, "
         }
 
         .card {
-            background: white;
-            padding: 20px;
+            background-color: #f1f1f1;
+            padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             margin-bottom: 30px;
-        }
-
-        h2 {
-            margin-top: 0;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
         }
 
         input, select, button {
@@ -127,8 +110,11 @@ $transaksi = mysqli_query($conn, "
         button {
             background-color: #007bff;
             color: white;
-            border: none;
             cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
         }
 
         table {
@@ -139,7 +125,7 @@ $transaksi = mysqli_query($conn, "
 
         th, td {
             padding: 12px;
-            border: 1px solid #ddd;
+            border: 1px solid #ccc;
         }
 
         th {
@@ -148,18 +134,37 @@ $transaksi = mysqli_query($conn, "
         }
 
         .hapus {
-            color: #ff6b6b;
+            color: #dc3545;
+            text-decoration: none;
         }
 
         .hapus:hover {
             text-decoration: underline;
+        }
+
+        .pesan {
+            padding: 10px;
+            background-color: #ffdddd;
+            border: 1px solid #ff5c5c;
+            color: #a94442;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .kembalian {
+            padding: 10px;
+            background-color: #ddffdd;
+            border: 1px solid #5cb85c;
+            color: #3c763d;
+            border-radius: 5px;
+            margin-top: 15px;
         }
     </style>
 </head>
 <body>
 <div class="sidebar">
     <h2>Kasir Panel</h2>
-    <a href="dashboard_admin.php">Dashboard</a>
+    <a href="dashboard_kasir.php">Dashboard</a>
     <a href="entri_transaksi.php">Entri Transaksi</a>
     <a href="laporan.php">Laporan</a>
     <a href="logout.php">Logout</a>
@@ -167,75 +172,55 @@ $transaksi = mysqli_query($conn, "
 
 <div class="main">
     <div class="card">
-        <h2>Tambah Transaksi</h2>
+        <h2>Entri Transaksi</h2>
         <form method="POST">
-            <label>ID Pesanan</label>
+            <label>Pilih Pesanan</label>
             <select name="idpesanan" required>
-                <option value="">-- Pilih --</option>
-                <?php while($row = mysqli_fetch_assoc($pesanan)) : ?>
-                    <option value="<?= $row['idpesanan'] ?>"><?= $row['idpesanan'] ?></option>
+                <option value="">Pilih Pesanan</option>
+                <?php while ($p = mysqli_fetch_assoc($pesanan)) : ?>
+                    <option value="<?= $p['idpesanan'] ?>">
+                        <?= $p['namamenu'] ?> x <?= $p['jumlah'] ?> = Rp<?= number_format($p['total']) ?>
+                    </option>
                 <?php endwhile; ?>
             </select>
 
-            <label>Total</label>
+            <label>Total (Rp)</label>
             <input type="number" name="total" required>
 
-            <label>Bayar</label>
+            <label>Bayar (Rp)</label>
             <input type="number" name="bayar" required>
 
-            <button type="submit">Simpan</button>
+            <button type="submit">Simpan Transaksi</button>
         </form>
-    </div>
 
-    <?php if ($transaksiBaru): ?>
-    <div class="card">
-        <h2>Transaksi Terbaru</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID Transaksi</th>
-                    <th>ID Pesanan</th>
-                    <th>Total</th>
-                    <th>Bayar</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><?= $transaksiBaru['idtransaksi'] ?></td>
-                    <td><?= $transaksiBaru['idpesanan'] ?></td>
-                    <td>Rp<?= number_format($transaksiBaru['total']) ?></td>
-                    <td>Rp<?= number_format($transaksiBaru['bayar']) ?></td>
-                    <td><a class="hapus" href="?hapus=<?= $transaksiBaru['idtransaksi'] ?>" onclick="return confirm('Yakin?')">Hapus</a></td>
-                </tr>
-            </tbody>
-        </table>
+        <?php if ($pesan): ?>
+            <div class="pesan"><?= $pesan ?></div>
+        <?php elseif ($kembalian !== null): ?>
+            <div class="kembalian">Transaksi berhasil. Kembalian: <strong>Rp<?= number_format($kembalian) ?></strong></div>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
 
     <div class="card">
         <h2>Riwayat Transaksi</h2>
         <table>
-            <thead>
+            <tr>
+                <th>ID Transaksi</th>
+                <th>Menu</th>
+                <th>Total</th>
+                <th>Bayar</th>
+                <th>Aksi</th>
+            </tr>
+            <?php while ($r = mysqli_fetch_assoc($riwayat)) : ?>
                 <tr>
-                    <th>ID Transaksi</th>
-                    <th>ID Pesanan</th>
-                    <th>Total</th>
-                    <th>Bayar</th>
-                    <th>Aksi</th>
+                    <td><?= $r['idtransaksi'] ?></td>
+                    <td><?= $r['namamenu'] ?></td>
+                    <td>Rp<?= number_format($r['total']) ?></td>
+                    <td>Rp<?= number_format($r['bayar']) ?></td>
+                    <td>
+                        <a class="hapus" href="?hapus=<?= $r['idtransaksi'] ?>" onclick="return confirm('Yakin ingin menghapus transaksi ini?')">Hapus</a>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                <?php while($row = mysqli_fetch_assoc($transaksi)) : ?>
-                <tr>
-                    <td><?= $row['idtransaksi'] ?></td>
-                    <td><?= $row['idpesanan'] ?></td>
-                    <td>Rp<?= number_format($row['total']) ?></td>
-                    <td>Rp<?= number_format($row['bayar']) ?></td>
-                    <td><a class="hapus" href="?hapus=<?= $row['idtransaksi'] ?>" onclick="return confirm('Yakin?')">Hapus</a></td>
-                </tr>
-                <?php endwhile; ?>
-            </tbody>
+            <?php endwhile; ?>
         </table>
     </div>
 </div>
