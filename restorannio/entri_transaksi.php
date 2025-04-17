@@ -27,7 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($bayar < $total) {
         $pesan = "Uang bayar kurang!";
     } else {
-        mysqli_query($conn, "INSERT INTO transaksi (idpesanan, total, bayar) VALUES ('$idpesanan', '$total', '$bayar')");
+        $status = 'Sudah Dibayar';
+        mysqli_query($conn, "INSERT INTO transaksi (idpesanan, total, bayar, status) VALUES ('$idpesanan', '$total', '$bayar', '$status')");
         $kembalian = $bayar - $total;
     }
 }
@@ -177,7 +178,7 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
             <label>Pilih Pesanan</label>
             <select name="idpesanan" required>
                 <option value="">Pilih Pesanan</option>
-                <?php while ($p = mysqli_fetch_assoc($pesanan)) : ?>
+                <?php mysqli_data_seek($pesanan, 0); while ($p = mysqli_fetch_assoc($pesanan)) : ?>
                     <option value="<?= $p['idpesanan'] ?>">
                         <?= $p['namamenu'] ?> x <?= $p['jumlah'] ?> = Rp<?= number_format($p['total']) ?>
                     </option>
@@ -197,6 +198,16 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
             <div class="pesan"><?= $pesan ?></div>
         <?php elseif ($kembalian !== null): ?>
             <div class="kembalian">Transaksi berhasil. Kembalian: <strong>Rp<?= number_format($kembalian) ?></strong></div>
+            <?php
+                // Ambil idtransaksi terakhir
+                $last = mysqli_query($conn, "SELECT MAX(idtransaksi) AS id FROM transaksi");
+                $lastRow = mysqli_fetch_assoc($last);
+                $idtransaksi = $lastRow['id'];
+            ?>
+            <form action="cetak_struk.php" method="get" target="_blank">
+                <input type="hidden" name="idtransaksi" value="<?= $idtransaksi ?>">
+                <button type="submit" style="margin-top: 10px;">Cetak Struk</button>
+            </form>
         <?php endif; ?>
     </div>
 
@@ -208,6 +219,7 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
                 <th>Menu</th>
                 <th>Total</th>
                 <th>Bayar</th>
+                <th>Status</th>
                 <th>Aksi</th>
             </tr>
             <?php while ($r = mysqli_fetch_assoc($riwayat)) : ?>
@@ -216,6 +228,7 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
                     <td><?= $r['namamenu'] ?></td>
                     <td>Rp<?= number_format($r['total']) ?></td>
                     <td>Rp<?= number_format($r['bayar']) ?></td>
+                    <td><?= $r['status'] ?></td>
                     <td>
                         <a class="hapus" href="?hapus=<?= $r['idtransaksi'] ?>" onclick="return confirm('Yakin ingin menghapus transaksi ini?')">Hapus</a>
                     </td>
