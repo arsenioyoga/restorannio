@@ -1,5 +1,15 @@
 <?php
+session_start();
 include 'koneksi.php';
+
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    echo "<script>alert('Akses ditolak!'); window.location.href='login.php';</script>";
+    exit;
+}
+
+$nama = $_SESSION['nama'];
+$role = $_SESSION['role'];
+$meja = mysqli_query($conn, "SELECT * FROM meja");
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $nomeja = $_POST['nomeja'];
@@ -14,8 +24,6 @@ if (isset($_GET['hapus'])) {
     header("Location: entri_meja.php");
     exit;
 }
-
-$meja = mysqli_query($conn, "SELECT * FROM meja");
 ?>
 
 <!DOCTYPE html>
@@ -23,46 +31,53 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
 <head>
     <title>Entri Meja</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             margin: 0;
-            font-family: sans-serif;
-            background-color: #1e272e;
-            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            background-color: #ffffff;
+            color: #333;
         }
 
         .sidebar {
-            position: fixed;
-            height: 100vh;
-            width: 200px;
-            background-color: #2f3640;
-            padding-top: 20px;
+            width: 240px;
+            background-color: #1e1e2f;
+            padding: 30px 20px;
+            min-height: 100vh;
+            color: white;
+        }
+
+        .sidebar h2 {
+            font-size: 20px;
+            margin-bottom: 30px;
         }
 
         .sidebar a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 16px;
-            padding: 14px 20px;
-            color: white;
+            color: #ccc;
             text-decoration: none;
+            display: block;
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 8px;
         }
 
         .sidebar a:hover {
-            background-color: #353b48;
+            background-color: #007bff;
+            color: white;
         }
 
         .main {
-            margin-left: 220px;
+            flex: 1;
             padding: 40px;
         }
 
         .card {
-            background-color: #353b48;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 700px;
-            margin-bottom: 40px;
+            background-color: #f1f1f1;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
         }
 
         input, button {
@@ -70,42 +85,37 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
             padding: 10px;
             margin-top: 10px;
             border-radius: 5px;
-            border: none;
-        }
-
-        input {
-            background-color: #2d3436;
-            color: white;
+            border: 1px solid #ccc;
         }
 
         button {
-            background-color: #00a8ff;
+            background-color: #007bff;
             color: white;
             cursor: pointer;
         }
 
         button:hover {
-            background-color: #0097e6;
+            background-color: #0056b3;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background-color: #2d3436;
+            margin-top: 15px;
         }
 
         th, td {
             padding: 12px;
-            border-bottom: 1px solid #444;
-            text-align: center;
+            border: 1px solid #ccc;
         }
 
         th {
-            background-color: #487eb0;
+            background-color: #007bff;
+            color: white;
         }
 
         .hapus {
-            color: #ff6b6b;
+            color: #dc3545;
             text-decoration: none;
         }
 
@@ -115,21 +125,20 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
     </style>
 </head>
 <body>
-
 <div class="sidebar">
-    <a href="dashboard_admin.php">📊 <span>Dashboard</span></a>
-    <a href="entri_barang.php">📦 <span>Entri Barang</span></a>
-    <a href="entri_meja.php">🪑 <span>Entri Meja</span></a>
-    <a href="entri_order.php">📝 <span>Entri Order</span></a>
-    <a href="logout.php">🚪 <span>Logout</span></a>
+    <h2>Admin Panel</h2>
+    <a href="dashboard_admin.php">Dashboard</a>
+    <a href="entri_barang.php">Entri Barang</a>
+    <a href="entri_meja.php">Entri Meja</a>
+    <a href="logout.php">Logout</a>
 </div>
 
 <div class="main">
     <div class="card">
-        <h2>Entri Meja</h2>
+        <h2>Tambah Meja</h2>
         <form method="POST">
             <label>Nomor Meja</label>
-            <input type="number" name="nomeja" required>
+            <input type="text" name="nomeja" required>
             <button type="submit">Simpan</button>
         </form>
     </div>
@@ -138,7 +147,7 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
         <h2>Daftar Meja</h2>
         <table>
             <tr>
-                <th>ID Meja</th>
+                <th>ID</th>
                 <th>Nomor Meja</th>
                 <th>Aksi</th>
             </tr>
@@ -146,12 +155,11 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
             <tr>
                 <td><?= $m['idmeja'] ?></td>
                 <td><?= $m['nomeja'] ?></td>
-                <td><a class="hapus" href="?hapus=<?= $m['idmeja'] ?>" onclick="return confirm('Hapus meja ini?')">Hapus</a></td>
+                <td><a class="hapus" href="?hapus=<?= $m['idmeja'] ?>" onclick="return confirm('Yakin ingin menghapus meja ini?')">Hapus</a></td>
             </tr>
             <?php endwhile; ?>
         </table>
     </div>
 </div>
-
 </body>
 </html>

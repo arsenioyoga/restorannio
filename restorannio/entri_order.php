@@ -2,34 +2,39 @@
 session_start();
 include 'koneksi.php';
 
-if (!isset($_SESSION['iduser']) || !in_array($_SESSION['role'], ['waiter'])) {
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'waiter') {
     echo "<script>alert('Akses ditolak!'); window.location.href='login.php';</script>";
     exit;
 }
 
-$iduser = $_SESSION['iduser'];
+$nama = $_SESSION['nama'];
+$role = $_SESSION['role'];
+$iduser = $_SESSION['iduser']; // Ambil iduser dari session
+$pesanan = mysqli_query($conn, "SELECT p.idpesanan, p.idmenu, p.jumlah, p.idpelanggan, p.iduser, m.namamenu, pl.namapelanggan 
+                                FROM pesanan p
+                                JOIN menu m ON p.idmenu = m.idmenu
+                                JOIN pelanggan pl ON p.idpelanggan = pl.idpelanggan");
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $idmenu = $_POST['idmenu'];
-    $idpelanggan = $_POST['idpelanggan'];
     $jumlah = $_POST['jumlah'];
+    $idpelanggan = $_POST['idpelanggan'];
 
-    $query = "INSERT INTO pesanan (idmenu, idpelanggan, jumlah, iduser)
-              VALUES ('$idmenu', '$idpelanggan', '$jumlah', '$iduser')";
-    mysqli_query($conn, $query);
+    // Masukkan pesanan dengan iduser yang diambil dari session
+    mysqli_query($conn, "INSERT INTO pesanan (idmenu, jumlah, idpelanggan, iduser) VALUES ('$idmenu', '$jumlah', '$idpelanggan', '$iduser')");
+    header("Location: entri_order.php");
+    exit;
+}
+
+if (isset($_GET['hapus'])) {
+    $id = $_GET['hapus'];
+    mysqli_query($conn, "DELETE FROM pesanan WHERE idpesanan = $id");
     header("Location: entri_order.php");
     exit;
 }
 
 $menu = mysqli_query($conn, "SELECT * FROM menu");
 $pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan");
-$pesanan = mysqli_query($conn, "
-    SELECT p.*, m.namamenu, pl.namapelanggan
-    FROM pesanan p
-    JOIN menu m ON p.idmenu = m.idmenu
-    JOIN pelanggan pl ON p.idpelanggan = pl.idpelanggan
-    ORDER BY p.idpesanan DESC
-");
 ?>
 
 <!DOCTYPE html>
@@ -37,179 +42,159 @@ $pesanan = mysqli_query($conn, "
 <head>
     <title>Entri Order</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f0f2f5;
+            font-family: 'Segoe UI', sans-serif;
             display: flex;
+            background-color: #ffffff;
+            color: #333;
         }
 
         .sidebar {
-            width: 220px;
-            background-color: #2d3436;
-            color: white;
+            width: 240px;
+            background-color: #1e1e2f;
+            padding: 30px 20px;
             min-height: 100vh;
-            padding-top: 30px;
-            position: fixed;
+            color: white;
         }
 
         .sidebar h2 {
-            text-align: center;
-            margin-bottom: 20px;
             font-size: 20px;
+            margin-bottom: 30px;
         }
 
-        .sidebar ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .sidebar ul li {
-            padding: 12px 20px;
-        }
-
-        .sidebar ul li a {
+        .sidebar a {
+            color: #ccc;
             text-decoration: none;
-            color: white;
             display: block;
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 8px;
         }
 
-        .sidebar ul li a:hover {
-            background-color: #636e72;
+        .sidebar a:hover {
+            background-color: #007bff;
+            color: white;
         }
 
         .main {
-            margin-left: 220px;
-            padding: 30px;
-            width: 100%;
+            flex: 1;
+            padding: 40px;
         }
 
         .card {
-            background-color: white;
-            border-radius: 10px;
+            background-color: #f1f1f1;
             padding: 25px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            max-width: 900px;
-            margin: auto;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
         }
 
-        h2 {
-            margin-bottom: 25px;
-            text-align: center;
-        }
-
-        form label {
-            display: block;
-            margin-top: 15px;
-        }
-
-        form select, form input[type="number"] {
+        input, select, button {
             width: 100%;
             padding: 10px;
-            margin-top: 5px;
+            margin-top: 10px;
+            border-radius: 5px;
             border: 1px solid #ccc;
-            border-radius: 6px;
         }
 
         button {
-            margin-top: 20px;
-            width: 100%;
-            padding: 12px;
-            background-color: #0984e3;
-            border: none;
+            background-color: #007bff;
             color: white;
-            font-weight: bold;
-            border-radius: 6px;
             cursor: pointer;
         }
 
         button:hover {
-            background-color: #74b9ff;
+            background-color: #0056b3;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 40px;
+            margin-top: 15px;
         }
 
         th, td {
             padding: 12px;
-            border-bottom: 1px solid #ccc;
-            text-align: center;
+            border: 1px solid #ccc;
         }
 
         th {
-            background-color: #0984e3;
+            background-color: #007bff;
             color: white;
+        }
+
+        .hapus {
+            color: #dc3545;
+            text-decoration: none;
+        }
+
+        .hapus:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
-
 <div class="sidebar">
     <h2>Waiter Panel</h2>
-    <ul>
-        <li><a href="dashboard_admin.php">Dashboard</a></li>
-        <li><a href="entri_barang.php">Entri Menu</a></li>
-        <li><a href="entri_meja.php">Entri Meja</a></li>
-        <li><a href="entri_order.php">Entri Order</a></li>
-        <li><a href="manajemen_laporan.php">Laporan</a></li>
-        <li><a href="logout.php">Logout</a></li>
-    </ul>
+    <a href="dashboard_waiter.php">Dashboard</a>
+    <a href="entri_barang.php">Entri Barang</a>
+    <a href="entri_order.php">Entri Order</a>
+    <a href="laporan.php">Laporan</a>
+    <a href="logout.php">Logout</a>
 </div>
 
 <div class="main">
     <div class="card">
-        <h2>Form Entri Order</h2>
+        <h2>Tambah Pesanan</h2>
         <form method="POST">
-            <label for="idmenu">Pilih Menu</label>
+            <label>Pilih Menu</label>
             <select name="idmenu" required>
-                <option value="">-- Pilih Menu --</option>
+                <option value="">Pilih Menu</option>
                 <?php while ($m = mysqli_fetch_assoc($menu)) : ?>
-                    <option value="<?= $m['idmenu'] ?>"><?= $m['namamenu'] ?> - Rp<?= number_format($m['harga']) ?></option>
+                <option value="<?= $m['idmenu'] ?>"><?= $m['namamenu'] ?> - Rp<?= number_format($m['harga']) ?></option>
                 <?php endwhile; ?>
             </select>
 
-            <label for="idpelanggan">Pilih Pelanggan</label>
+            <label>Jumlah</label>
+            <input type="number" name="jumlah" required>
+
+            <label>Pilih Pelanggan</label>
             <select name="idpelanggan" required>
-                <option value="">-- Pilih Pelanggan --</option>
+                <option value="">Pilih Pelanggan</option>
                 <?php while ($p = mysqli_fetch_assoc($pelanggan)) : ?>
-                    <option value="<?= $p['idpelanggan'] ?>"><?= $p['namapelanggan'] ?></option>
+                <option value="<?= $p['idpelanggan'] ?>"><?= $p['namapelanggan'] ?></option>
                 <?php endwhile; ?>
             </select>
 
-            <label for="jumlah">Jumlah</label>
-            <input type="number" name="jumlah" min="1" required>
-
-            <button type="submit">Simpan Pesanan</button>
+            <button type="submit">Simpan</button>
         </form>
+    </div>
 
-        <h3 style="margin-top: 40px;">Daftar Pesanan</h3>
+    <div class="card">
+        <h2>Daftar Pesanan</h2>
         <table>
-            <thead>
-                <tr>
-                    <th>ID Pesanan</th>
-                    <th>Menu</th>
-                    <th>Pelanggan</th>
-                    <th>Jumlah</th>
-                    <th>ID User</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while ($row = mysqli_fetch_assoc($pesanan)) : ?>
-                    <tr>
-                        <td><?= $row['idpesanan'] ?></td>
-                        <td><?= $row['namamenu'] ?></td>
-                        <td><?= $row['namapelanggan'] ?></td>
-                        <td><?= $row['jumlah'] ?></td>
-                        <td><?= $row['iduser'] ?></td>
-                    </tr>
-                <?php endwhile; ?>
-            </tbody>
+            <tr>
+                <th>ID Pesanan</th>
+                <th>Menu</th>
+                <th>Jumlah</th>
+                <th>Pelanggan</th>
+                <th>User</th> <!-- Menambahkan kolom User -->
+                <th>Aksi</th>
+            </tr>
+            <?php while ($p = mysqli_fetch_assoc($pesanan)) : ?>
+            <tr>
+                <td><?= $p['idpesanan'] ?></td>
+                <td><?= $p['namamenu'] ?></td> <!-- Mengambil nama menu -->
+                <td><?= $p['jumlah'] ?></td>
+                <td><?= $p['namapelanggan'] ?></td> <!-- Mengambil nama pelanggan -->
+                <td><?= $p['iduser'] ?></td> <!-- Menampilkan iduser -->
+                <td><a class="hapus" href="?hapus=<?= $p['idpesanan'] ?>" onclick="return confirm('Yakin ingin menghapus pesanan ini?')">Hapus</a></td>
+            </tr>
+            <?php endwhile; ?>
         </table>
     </div>
 </div>
-
 </body>
 </html>

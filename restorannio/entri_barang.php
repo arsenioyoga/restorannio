@@ -1,5 +1,15 @@
 <?php
+session_start();
 include 'koneksi.php';
+
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'waiter'])) {
+    echo "<script>alert('Akses ditolak!'); window.location.href='login.php';</script>";
+    exit;
+}
+
+$role = $_SESSION['role'];
+$nama = $_SESSION['nama'];
+$menu = mysqli_query($conn, "SELECT * FROM menu");
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $namamenu = $_POST['namamenu'];
@@ -15,8 +25,6 @@ if (isset($_GET['hapus'])) {
     header("Location: entri_barang.php");
     exit;
 }
-
-$menu = mysqli_query($conn, "SELECT * FROM menu");
 ?>
 
 <!DOCTYPE html>
@@ -24,207 +32,164 @@ $menu = mysqli_query($conn, "SELECT * FROM menu");
 <head>
     <title>Entri Barang</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
-        }
-
+        * { box-sizing: border-box; }
         body {
-            background-image: url('https://png.pngtree.com/thumb_back/fh260/background/20230929/pngtree-3d-rendering-of-restaurant-signboard-in-mockup-image_13526069.png');
-            background-size: cover;
-            background-attachment: fixed;
-            background-position: center;
-        }
-
-        .wrapper {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
             display: flex;
-            min-height: 100vh;
-            background-color: rgba(255, 255, 255, 0.95);
+            background-color: #ffffff;
+            color: #333;
         }
 
         .sidebar {
-            width: 250px;
-            background-color: #212529;
+            width: 240px;
+            background-color: #343a40;
+            padding: 30px 20px;
+            min-height: 100vh;
             color: white;
-            padding: 20px 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 100vh;
         }
 
         .sidebar h2 {
-            text-align: center;
+            font-size: 20px;
             margin-bottom: 30px;
-            font-size: 24px;
         }
 
         .sidebar a {
-            color: #ddd;
+            color: #ccc;
             text-decoration: none;
-            padding: 12px;
             display: block;
+            margin-bottom: 12px;
+            padding: 10px;
             border-radius: 8px;
-            margin-bottom: 10px;
-            transition: 0.3s;
-            font-size: 16px;
         }
 
-        .sidebar a:hover,
-        .sidebar a.active {
+        .sidebar a:hover {
             background-color: #007bff;
             color: white;
         }
 
-        .content {
+        .main {
             flex: 1;
             padding: 40px;
-            overflow-y: auto;
-        }
-
-        .content h1 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 28px;
-        }
-
-        .content p {
-            font-size: 18px;
-            margin-bottom: 20px;
         }
 
         .card {
-            background-color: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            max-width: 800px;
-            margin: 0 auto;
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
-        .logout-link {
-            color: #dc3545;
-            text-decoration: none;
-            font-weight: bold;
-            margin-top: 20px;
-            display: block;
-            text-align: center;
-        }
-
-        .logout-link:hover {
-            text-decoration: underline;
-        }
-
-        .sidebar img {
-            width: 50px;
-            margin-bottom: 20px;
-            display: block;
-            margin: 0 auto;
-        }
-
-        .logout-link {
-            font-size: 16px;
-        }
-
-        /* Styling for form */
         input, button {
             width: 100%;
             padding: 10px;
             margin-top: 10px;
             border-radius: 5px;
-            border: none;
-        }
-
-        input {
-            background-color: #2d3436;
-            color: white;
+            border: 1px solid #ccc;
         }
 
         button {
-            background-color: #00a8ff;
+            background-color: #007bff;
             color: white;
             cursor: pointer;
         }
 
         button:hover {
-            background-color: #0097e6;
+            background-color: #0056b3;
         }
 
-        /* Table styling */
         table {
             width: 100%;
             border-collapse: collapse;
-            background-color: #2d3436;
+            margin-top: 15px;
+            background-color: white;
         }
 
         th, td {
             padding: 12px;
-            border-bottom: 1px solid #444;
+            border: 1px solid #ccc;
             text-align: center;
         }
 
         th {
-            background-color: #487eb0;
+            background-color: #007bff;
+            color: white;
         }
 
         .hapus {
-            color: #ff6b6b;
+            color: #dc3545;
             text-decoration: none;
         }
 
         .hapus:hover {
             text-decoration: underline;
         }
+
+        .link-meja {
+            margin-top: 20px;
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 16px;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .link-meja:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
-
-<div class="wrapper">
-    <div class="sidebar">
-        <img src="https://yourlogo.png" alt="Logo" />
-        <h2>Admin Panel</h2>
-        <a href="dashboard_admin.php">📊 Dashboard</a>
-        <a href="entri_barang.php">📦 Entri Barang</a>
-        <a href="entri_meja.php">🪑 Entri Meja</a>
-        <a href="entri_order.php">📝 Entri Order</a>
-        <a href="logout.php">🚪 Logout</a>
-    </div>
-
-    <div class="content">
-        <div class="card">
-            <h1>Entri Barang</h1>
-            <form method="POST">
-                <label>Nama Menu</label>
-                <input type="text" name="namamenu" required>
-                <label>Harga</label>
-                <input type="number" name="harga" required>
-                <button type="submit">Simpan</button>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2>Daftar Menu</h2>
-            <table>
-                <tr>
-                    <th>ID</th>
-                    <th>Nama Menu</th>
-                    <th>Harga</th>
-                    <th>Aksi</th>
-                </tr>
-                <?php while ($m = mysqli_fetch_assoc($menu)) : ?>
-                <tr>
-                    <td><?= $m['idmenu'] ?></td>
-                    <td><?= $m['namamenu'] ?></td>
-                    <td>Rp<?= number_format($m['harga']) ?></td>
-                    <td><a class="hapus" href="?hapus=<?= $m['idmenu'] ?>" onclick="return confirm('Yakin ingin hapus menu ini?')">Hapus</a></td>
-                </tr>
-                <?php endwhile; ?>
-            </table>
-        </div>
-    </div>
+<div class="sidebar">
+    <h2><?= ucfirst($role) ?> Panel</h2>
+    <a href="dashboard_admin.php">Dashboard</a>
+    <a href="entri_barang.php">Entri Barang</a>
+    <?php if ($role === 'waiter') : ?>
+        <a href="entri_order.php">Entri Order</a>
+    <?php endif; ?>
+    <?php if ($role === 'admin') : ?>
+        <a href="entri_meja.php">Entri Meja</a>
+    <?php endif; ?>
+    <a href="logout.php">Logout</a>
 </div>
 
+<div class="main">
+    <div class="card">
+        <h2>Tambah Menu</h2>
+        <form method="POST">
+            <label>Nama Menu</label>
+            <input type="text" name="namamenu" required>
+            <label>Harga</label>
+            <input type="number" name="harga" required>
+            <button type="submit">Simpan</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Daftar Menu</h2>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Nama</th>
+                <th>Harga</th>
+                <th>Aksi</th>
+            </tr>
+            <?php while ($m = mysqli_fetch_assoc($menu)) : ?>
+            <tr>
+                <td><?= $m['idmenu'] ?></td>
+                <td><?= $m['namamenu'] ?></td>
+                <td>Rp<?= number_format($m['harga']) ?></td>
+                <td><a class="hapus" href="?hapus=<?= $m['idmenu'] ?>" onclick="return confirm('Yakin?')">Hapus</a></td>
+            </tr>
+            <?php endwhile; ?>
+        </table>
+
+        <?php if ($role === 'admin') : ?>
+            <a class="link-meja" href="entri_meja.php">Ke Entri Meja</a>
+        <?php endif; ?>
+    </div>
+</div>
 </body>
 </html>
