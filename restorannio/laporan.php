@@ -117,7 +117,7 @@ $transaksi = mysqli_query($conn, "SELECT
 <body>
 <div class="sidebar">
     <h2>Laporan</h2>
-    <a href="dashboard_<?php echo $_SESSION['role']; ?>.php">Dashboard</a>
+    <a href="dashboard_admin.php">Dashboard</a>
     <?php if ($_SESSION['role'] == 'waiter') : ?>
         <a href="entri_barang.php">Entri Barang</a>
         <a href="entri_order.php">Entri Order</a>

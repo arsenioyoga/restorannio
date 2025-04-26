@@ -9,19 +9,21 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'waiter') {
 
 $nama = $_SESSION['nama'];
 $role = $_SESSION['role'];
-$iduser = $_SESSION['iduser']; // Ambil iduser dari session
-$pesanan = mysqli_query($conn, "SELECT p.idpesanan, p.idmenu, p.jumlah, p.idpelanggan, p.iduser, m.namamenu, pl.namapelanggan 
+$iduser = $_SESSION['iduser'];
+
+$pesanan = mysqli_query($conn, "SELECT p.idpesanan, p.idmenu, p.jumlah, p.idpelanggan, p.iduser, p.idmeja, m.namamenu, pl.namapelanggan, mj.nomeja 
                                 FROM pesanan p
                                 JOIN menu m ON p.idmenu = m.idmenu
-                                JOIN pelanggan pl ON p.idpelanggan = pl.idpelanggan");
+                                JOIN pelanggan pl ON p.idpelanggan = pl.idpelanggan
+                                JOIN meja mj ON p.idmeja = mj.idmeja");
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $idmenu = $_POST['idmenu'];
     $jumlah = $_POST['jumlah'];
     $idpelanggan = $_POST['idpelanggan'];
+    $idmeja = $_POST['idmeja'];
 
-    // Masukkan pesanan dengan iduser yang diambil dari session
-    mysqli_query($conn, "INSERT INTO pesanan (idmenu, jumlah, idpelanggan, iduser) VALUES ('$idmenu', '$jumlah', '$idpelanggan', '$iduser')");
+    mysqli_query($conn, "INSERT INTO pesanan (idmenu, jumlah, idpelanggan, iduser, idmeja) VALUES ('$idmenu', '$jumlah', '$idpelanggan', '$iduser', '$idmeja')");
     header("Location: entri_order.php");
     exit;
 }
@@ -35,6 +37,7 @@ if (isset($_GET['hapus'])) {
 
 $menu = mysqli_query($conn, "SELECT * FROM menu");
 $pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan");
+$meja = mysqli_query($conn, "SELECT * FROM meja");
 ?>
 
 <!DOCTYPE html>
@@ -153,7 +156,7 @@ $pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan");
             <select name="idmenu" required>
                 <option value="">Pilih Menu</option>
                 <?php while ($m = mysqli_fetch_assoc($menu)) : ?>
-                <option value="<?= $m['idmenu'] ?>"><?= $m['namamenu'] ?> - Rp<?= number_format($m['harga']) ?></option>
+                    <option value="<?= $m['idmenu'] ?>"><?= $m['namamenu'] ?> - Rp<?= number_format($m['harga']) ?></option>
                 <?php endwhile; ?>
             </select>
 
@@ -164,7 +167,15 @@ $pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan");
             <select name="idpelanggan" required>
                 <option value="">Pilih Pelanggan</option>
                 <?php while ($p = mysqli_fetch_assoc($pelanggan)) : ?>
-                <option value="<?= $p['idpelanggan'] ?>"><?= $p['namapelanggan'] ?></option>
+                    <option value="<?= $p['idpelanggan'] ?>"><?= $p['namapelanggan'] ?></option>
+                <?php endwhile; ?>
+            </select>
+
+            <label>Pilih Meja</label>
+            <select name="idmeja" required>
+                <option value="">Pilih Meja</option>
+                <?php while ($mj = mysqli_fetch_assoc($meja)) : ?>
+                    <option value="<?= $mj['idmeja'] ?>">Meja <?= $mj['nomeja'] ?></option>
                 <?php endwhile; ?>
             </select>
 
@@ -180,16 +191,18 @@ $pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan");
                 <th>Menu</th>
                 <th>Jumlah</th>
                 <th>Pelanggan</th>
-                <th>User</th> <!-- Menambahkan kolom User -->
+                <th>Meja</th>
+                <th>User</th>
                 <th>Aksi</th>
             </tr>
             <?php while ($p = mysqli_fetch_assoc($pesanan)) : ?>
             <tr>
                 <td><?= $p['idpesanan'] ?></td>
-                <td><?= $p['namamenu'] ?></td> <!-- Mengambil nama menu -->
+                <td><?= $p['namamenu'] ?></td>
                 <td><?= $p['jumlah'] ?></td>
-                <td><?= $p['namapelanggan'] ?></td> <!-- Mengambil nama pelanggan -->
-                <td><?= $p['iduser'] ?></td> <!-- Menampilkan iduser -->
+                <td><?= $p['namapelanggan'] ?></td>
+                <td><?= $p['nomeja'] ?></td>
+                <td><?= $p['iduser'] ?></td>
                 <td><a class="hapus" href="?hapus=<?= $p['idpesanan'] ?>" onclick="return confirm('Yakin ingin menghapus pesanan ini?')">Hapus</a></td>
             </tr>
             <?php endwhile; ?>

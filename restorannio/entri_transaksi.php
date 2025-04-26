@@ -165,7 +165,7 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
 <body>
 <div class="sidebar">
     <h2>Kasir Panel</h2>
-    <a href="dashboard_kasir.php">Dashboard</a>
+    <a href="dashboard_admin.php">Dashboard</a>
     <a href="entri_transaksi.php">Entri Transaksi</a>
     <a href="laporan.php">Laporan</a>
     <a href="logout.php">Logout</a>
@@ -179,7 +179,7 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
             <select name="idpesanan" required>
                 <option value="">Pilih Pesanan</option>
                 <?php mysqli_data_seek($pesanan, 0); while ($p = mysqli_fetch_assoc($pesanan)) : ?>
-                    <option value="<?= $p['idpesanan'] ?>">
+                    <option value="<?= $p['idpesanan'] ?>" data-total="<?= $p['total'] ?>">
                         <?= $p['namamenu'] ?> x <?= $p['jumlah'] ?> = Rp<?= number_format($p['total']) ?>
                     </option>
                 <?php endwhile; ?>
@@ -199,7 +199,6 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
         <?php elseif ($kembalian !== null): ?>
             <div class="kembalian">Transaksi berhasil. Kembalian: <strong>Rp<?= number_format($kembalian) ?></strong></div>
             <?php
-                // Ambil idtransaksi terakhir
                 $last = mysqli_query($conn, "SELECT MAX(idtransaksi) AS id FROM transaksi");
                 $lastRow = mysqli_fetch_assoc($last);
                 $idtransaksi = $lastRow['id'];
@@ -237,5 +236,17 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
         </table>
     </div>
 </div>
+
+<!-- Script untuk otomatis mengisi total -->
+<script>
+    const pesananSelect = document.querySelector('select[name="idpesanan"]');
+    const totalInput = document.querySelector('input[name="total"]');
+
+    pesananSelect.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const total = selected.getAttribute('data-total');
+        totalInput.value = total ? total : '';
+    });
+</script>
 </body>
 </html>
