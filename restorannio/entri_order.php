@@ -11,23 +11,39 @@ $nama = $_SESSION['nama'];
 $role = $_SESSION['role'];
 $iduser = $_SESSION['iduser'];
 
+$menu = mysqli_query($conn, "SELECT * FROM menu");
+$pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan");
+$meja = mysqli_query($conn, "SELECT * FROM meja");
+
 $pesanan = mysqli_query($conn, "SELECT p.idpesanan, p.idmenu, p.jumlah, p.idpelanggan, p.iduser, p.idmeja, m.namamenu, pl.namapelanggan, mj.nomeja 
                                 FROM pesanan p
                                 JOIN menu m ON p.idmenu = m.idmenu
                                 JOIN pelanggan pl ON p.idpelanggan = pl.idpelanggan
                                 JOIN meja mj ON p.idmeja = mj.idmeja");
 
+$edit = null;
+$success = false;
+
+// Tambah atau Update pesanan
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $idmenu = $_POST['idmenu'];
     $jumlah = $_POST['jumlah'];
     $idpelanggan = $_POST['idpelanggan'];
     $idmeja = $_POST['idmeja'];
 
-    mysqli_query($conn, "INSERT INTO pesanan (idmenu, jumlah, idpelanggan, iduser, idmeja) VALUES ('$idmenu', '$jumlah', '$idpelanggan', '$iduser', '$idmeja')");
-    header("Location: entri_order.php");
+    if (isset($_POST['idpesanan']) && $_POST['idpesanan'] != '') {
+        $idpesanan = $_POST['idpesanan'];
+        mysqli_query($conn, "UPDATE pesanan SET idmenu='$idmenu', jumlah='$jumlah', idpelanggan='$idpelanggan', idmeja='$idmeja' WHERE idpesanan='$idpesanan'");
+    } else {
+        mysqli_query($conn, "INSERT INTO pesanan (idmenu, jumlah, idpelanggan, iduser, idmeja) VALUES ('$idmenu', '$jumlah', '$idpelanggan', '$iduser', '$idmeja')");
+    }
+
+    $success = true;
+    header("Location: entri_order.php?success=1");
     exit;
 }
 
+// Hapus pesanan
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
     mysqli_query($conn, "DELETE FROM pesanan WHERE idpesanan = $id");
@@ -35,9 +51,17 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
-$menu = mysqli_query($conn, "SELECT * FROM menu");
-$pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan");
-$meja = mysqli_query($conn, "SELECT * FROM meja");
+// Cek success alert
+if (isset($_GET['success'])) {
+    $success = true;
+}
+
+// Edit pesanan
+if (isset($_GET['edit'])) {
+    $id = $_GET['edit'];
+    $result = mysqli_query($conn, "SELECT * FROM pesanan WHERE idpesanan = $id");
+    $edit = mysqli_fetch_assoc($result);
+}
 ?>
 
 <!DOCTYPE html>
@@ -136,6 +160,14 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
         .hapus:hover {
             text-decoration: underline;
         }
+
+        .alert {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -150,36 +182,51 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
 
 <div class="main">
     <div class="card">
-        <h2>Tambah Pesanan</h2>
+        <h2><?= $edit ? 'Edit Pesanan' : 'Tambah Pesanan' ?></h2>
+
+        <?php if ($success): ?>
+            <div class="alert">Data berhasil disimpan.</div>
+        <?php endif; ?>
+
         <form method="POST">
+            <?php if ($edit) : ?>
+                <input type="hidden" name="idpesanan" value="<?= $edit['idpesanan'] ?>">
+            <?php endif; ?>
+
             <label>Pilih Menu</label>
             <select name="idmenu" required>
                 <option value="">Pilih Menu</option>
-                <?php while ($m = mysqli_fetch_assoc($menu)) : ?>
-                    <option value="<?= $m['idmenu'] ?>"><?= $m['namamenu'] ?> - Rp<?= number_format($m['harga']) ?></option>
+                <?php mysqli_data_seek($menu, 0); while ($m = mysqli_fetch_assoc($menu)) : ?>
+                    <option value="<?= $m['idmenu'] ?>" <?= ($edit && $edit['idmenu'] == $m['idmenu']) ? 'selected' : '' ?>>
+                        <?= $m['namamenu'] ?> - Rp<?= number_format($m['harga']) ?>
+                    </option>
                 <?php endwhile; ?>
             </select>
 
             <label>Jumlah</label>
-            <input type="number" name="jumlah" required>
+            <input type="number" name="jumlah" value="<?= $edit ? $edit['jumlah'] : '' ?>" required>
 
             <label>Pilih Pelanggan</label>
             <select name="idpelanggan" required>
                 <option value="">Pilih Pelanggan</option>
-                <?php while ($p = mysqli_fetch_assoc($pelanggan)) : ?>
-                    <option value="<?= $p['idpelanggan'] ?>"><?= $p['namapelanggan'] ?></option>
+                <?php mysqli_data_seek($pelanggan, 0); while ($p = mysqli_fetch_assoc($pelanggan)) : ?>
+                    <option value="<?= $p['idpelanggan'] ?>" <?= ($edit && $edit['idpelanggan'] == $p['idpelanggan']) ? 'selected' : '' ?>>
+                        <?= $p['namapelanggan'] ?>
+                    </option>
                 <?php endwhile; ?>
             </select>
 
             <label>Pilih Meja</label>
             <select name="idmeja" required>
                 <option value="">Pilih Meja</option>
-                <?php while ($mj = mysqli_fetch_assoc($meja)) : ?>
-                    <option value="<?= $mj['idmeja'] ?>">Meja <?= $mj['nomeja'] ?></option>
+                <?php mysqli_data_seek($meja, 0); while ($mj = mysqli_fetch_assoc($meja)) : ?>
+                    <option value="<?= $mj['idmeja'] ?>" <?= ($edit && $edit['idmeja'] == $mj['idmeja']) ? 'selected' : '' ?>>
+                        Meja <?= $mj['nomeja'] ?>
+                    </option>
                 <?php endwhile; ?>
             </select>
 
-            <button type="submit">Simpan</button>
+            <button type="submit"><?= $edit ? 'Update' : 'Simpan' ?></button>
         </form>
     </div>
 
@@ -192,10 +239,10 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
                 <th>Jumlah</th>
                 <th>Pelanggan</th>
                 <th>Meja</th>
-                <th>User</th>
+                <th>ID User</th>
                 <th>Aksi</th>
             </tr>
-            <?php while ($p = mysqli_fetch_assoc($pesanan)) : ?>
+            <?php mysqli_data_seek($pesanan, 0); while ($p = mysqli_fetch_assoc($pesanan)) : ?>
             <tr>
                 <td><?= $p['idpesanan'] ?></td>
                 <td><?= $p['namamenu'] ?></td>
@@ -203,7 +250,10 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
                 <td><?= $p['namapelanggan'] ?></td>
                 <td><?= $p['nomeja'] ?></td>
                 <td><?= $p['iduser'] ?></td>
-                <td><a class="hapus" href="?hapus=<?= $p['idpesanan'] ?>" onclick="return confirm('Yakin ingin menghapus pesanan ini?')">Hapus</a></td>
+                <td>
+                    <a class="hapus" href="?hapus=<?= $p['idpesanan'] ?>" onclick="return confirm('Yakin ingin menghapus pesanan ini?')">Hapus</a> |
+                    <a href="?edit=<?= $p['idpesanan'] ?>">Edit</a>
+                </td>
             </tr>
             <?php endwhile; ?>
         </table>

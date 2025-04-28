@@ -126,7 +126,7 @@ if (isset($_GET['hapus'])) {
             text-decoration: underline;
         }
 
-        .link-meja {
+        .link-meja, .link-laporan {
             margin-top: 20px;
             display: inline-block;
             background-color: #28a745;
@@ -136,7 +136,7 @@ if (isset($_GET['hapus'])) {
             border-radius: 6px;
         }
 
-        .link-meja:hover {
+        .link-meja:hover, .link-laporan:hover {
             background-color: #218838;
         }
     </style>
@@ -150,7 +150,10 @@ if (isset($_GET['hapus'])) {
         <a href="entri_order.php">Entri Order</a>
     <?php endif; ?>
     <?php if ($role === 'admin') : ?>
-        <a href="entri_meka.php">Entri Meja</a>
+        <a href="entri_meja.php">Entri Meja</a>
+    <?php endif; ?>
+    <?php if ($role === 'waiter') : ?>
+        <a href="laporan.php">Laporan</a>
     <?php endif; ?>
     <a href="logout.php">Logout</a>
 </div>
