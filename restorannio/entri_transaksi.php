@@ -165,7 +165,7 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
 <body>
 <div class="sidebar">
     <h2>Kasir Panel</h2>
-    <a href="dashboard_admin.php">Dashboard</a>
+    <a href="dashboard_admim.php">Dashboard</a>
     <a href="entri_transaksi.php">Entri Transaksi</a>
     <a href="laporan.php">Laporan</a>
     <a href="logout.php">Logout</a>

@@ -141,8 +141,8 @@ $meja = mysqli_query($conn, "SELECT * FROM meja");
 <body>
 <div class="sidebar">
     <h2>Waiter Panel</h2>
-    <a href="dashboard_waiter.php">Dashboard</a>
-    <a href="entri_barang.php">Entri Barang</a>
+    <a href="dashboard_admin.php">Dashboard</a>
+    <a href="entri_barang.php">Entri Menu</a>
     <a href="entri_order.php">Entri Order</a>
     <a href="laporan.php">Laporan</a>
     <a href="logout.php">Logout</a>

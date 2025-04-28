@@ -145,12 +145,12 @@ if (isset($_GET['hapus'])) {
 <div class="sidebar">
     <h2><?= ucfirst($role) ?> Panel</h2>
     <a href="dashboard_admin.php">Dashboard</a>
-    <a href="entri_barang.php">Entri Barang</a>
+    <a href="entri_barang.php">Entri Menu</a>
     <?php if ($role === 'waiter') : ?>
         <a href="entri_order.php">Entri Order</a>
     <?php endif; ?>
     <?php if ($role === 'admin') : ?>
-        <a href="entri_meja.php">Entri Meja</a>
+        <a href="entri_meka.php">Entri Meja</a>
     <?php endif; ?>
     <a href="logout.php">Logout</a>
 </div>

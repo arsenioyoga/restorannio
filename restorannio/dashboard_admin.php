@@ -107,12 +107,12 @@ $role_cap = ucfirst($role);
                 <h2><?= $role_cap ?> Panel</h2>
 
                 <?php if ($role === 'admin') : ?>
-                    <a href="entri_barang.php">Entri Barang</a>
+                    <a href="entri_barang.php">Entri Menu</a>
                     <a href="entri_meja.php">Entri Meja</a>
                     <a href="register.php">Kelola User</a>
 
                 <?php elseif ($role === 'waiter') : ?>
-                    <a href="entri_barang.php">Entri Barang</a>
+                    <a href="entri_barang.php">Entri Menu</a>
                     <a href="entri_order.php">Entri Order</a>
                     <a href="laporan.php">Laporan</a>
 
