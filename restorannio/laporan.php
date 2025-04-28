@@ -7,6 +7,7 @@ if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['waiter', 'kasir'
     exit;
 }
 
+// Query semua transaksi
 $transaksi = mysqli_query($conn, "SELECT 
     t.idtransaksi, 
     t.total, 
@@ -22,8 +23,26 @@ $transaksi = mysqli_query($conn, "SELECT
     JOIN pelanggan pl ON p.idpelanggan = pl.idpelanggan
     ORDER BY t.idtransaksi DESC
 ");
-?>
 
+// Hitung Penghasilan Hari Ini
+$hari_ini = date('Y-m-d');
+$query_hari_ini = mysqli_query($conn, "SELECT SUM(total) AS total_hari FROM transaksi WHERE DATE(created_at) = '$hari_ini'");
+$data_hari = mysqli_fetch_assoc($query_hari_ini);
+$total_hari = $data_hari['total_hari'] ?? 0;
+
+// Hitung Penghasilan Minggu Ini
+$monday = date('Y-m-d', strtotime('monday this week'));
+$sunday = date('Y-m-d', strtotime('sunday this week'));
+$query_minggu = mysqli_query($conn, "SELECT SUM(total) AS total_minggu FROM transaksi WHERE DATE(created_at) BETWEEN '$monday' AND '$sunday'");
+$data_minggu = mysqli_fetch_assoc($query_minggu);
+$total_minggu = $data_minggu['total_minggu'] ?? 0;
+
+// Hitung Penghasilan Bulan Ini
+$bulan_ini = date('Y-m');
+$query_bulan = mysqli_query($conn, "SELECT SUM(total) AS total_bulan FROM transaksi WHERE DATE_FORMAT(created_at, '%Y-%m') = '$bulan_ini'");
+$data_bulan = mysqli_fetch_assoc($query_bulan);
+$total_bulan = $data_bulan['total_bulan'] ?? 0;
+?>
 <!DOCTYPE html>
 <html>
 <head>
@@ -112,6 +131,23 @@ $transaksi = mysqli_query($conn, "SELECT
             font-weight: bold;
             color: green;
         }
+
+        .income-summary {
+            margin-bottom: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+
+        .income-summary h3 {
+            margin: 0 0 10px 0;
+        }
+
+        .income-summary p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -136,9 +172,23 @@ $transaksi = mysqli_query($conn, "SELECT
     <div class="card">
         <h2>Riwayat Transaksi</h2>
 
+        <div class="income-summary">
+            <h3>Ringkasan Penghasilan</h3>
+            <p>Hari Ini: <strong>Rp<?= number_format($total_hari) ?></strong></p>
+            <p>Minggu Ini: <strong>Rp<?= number_format($total_minggu) ?></strong></p>
+            <p>Bulan Ini: <strong>Rp<?= number_format($total_bulan) ?></strong></p>
+        </div>
+
         <form action="export_pdf.php" method="post">
+            <select name="filter" style="padding:10px; margin-right:10px; border-radius:6px;">
+                <option value="semua">Semua</option>
+                <option value="hariini">Hari Ini</option>
+                <option value="mingguini">Minggu Ini</option>
+                <option value="bulanini">Bulan Ini</option>
+            </select>
             <button type="submit" class="pdf-button">Unduh PDF</button>
         </form>
+
 
         <table>
             <tr>
