@@ -109,7 +109,6 @@ $role_cap = ucfirst($role);
                 <?php if ($role === 'admin') : ?>
                     <a href="entri_barang.php">Entri Menu</a>
                     <a href="entri_meja.php">Entri Meja</a>
-                    <a href="register.php">Kelola User</a>
 
                 <?php elseif ($role === 'waiter') : ?>
                     <a href="entri_barang.php">Entri Menu</a>

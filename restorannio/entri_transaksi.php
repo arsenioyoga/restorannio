@@ -20,7 +20,7 @@ if (isset($_GET['hapus'])) {
 
 // Simpan transaksi
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $idpesanan = $_POST['idpesanan'];
+    $idpesanan = $_POST['idpesanan']; // Array idpesanan
     $total = $_POST['total'];
     $bayar = $_POST['bayar'];
 
@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $pesan = "Uang bayar kurang!";
     } else {
         $status = 'Sudah Dibayar';
-        mysqli_query($conn, "INSERT INTO transaksi (idpesanan, total, bayar, status) VALUES ('$idpesanan', '$total', '$bayar', '$status')");
+        foreach ($idpesanan as $pesanan_id) {
+            // Simpan setiap transaksi yang dipilih
+            mysqli_query($conn, "INSERT INTO transaksi (idpesanan, total, bayar, status) VALUES ('$pesanan_id', '$total', '$bayar', '$status')");
+        }
         $kembalian = $bayar - $total;
     }
 }
@@ -176,9 +179,8 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
         <h2>Entri Transaksi</h2>
         <form method="POST">
             <label>Pilih Pesanan</label>
-            <select name="idpesanan" required>
-                <option value="">Pilih Pesanan</option>
-                <?php mysqli_data_seek($pesanan, 0); while ($p = mysqli_fetch_assoc($pesanan)) : ?>
+            <select name="idpesanan[]" multiple required>
+                <?php while ($p = mysqli_fetch_assoc($pesanan)) : ?>
                     <option value="<?= $p['idpesanan'] ?>" data-total="<?= $p['total'] ?>">
                         <?= $p['namamenu'] ?> x <?= $p['jumlah'] ?> = Rp<?= number_format($p['total']) ?>
                     </option>
@@ -239,13 +241,16 @@ $riwayat = mysqli_query($conn, "SELECT t.*, m.namamenu
 
 <!-- Script untuk otomatis mengisi total -->
 <script>
-    const pesananSelect = document.querySelector('select[name="idpesanan"]');
+    const pesananSelect = document.querySelector('select[name="idpesanan[]"]');
     const totalInput = document.querySelector('input[name="total"]');
 
     pesananSelect.addEventListener('change', function() {
-        const selected = this.options[this.selectedIndex];
-        const total = selected.getAttribute('data-total');
-        totalInput.value = total ? total : '';
+        let total = 0;
+        const selectedOptions = Array.from(pesananSelect.selectedOptions);
+        selectedOptions.forEach(option => {
+            total += parseInt(option.getAttribute('data-total'));
+        });
+        totalInput.value = total;
     });
 </script>
 </body>
